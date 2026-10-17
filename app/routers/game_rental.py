@@ -89,9 +89,8 @@ def update_rental(rental_id: int, data: RentalUpdate, db: SessionDep, _: StaffDe
     return _service(db).update_rental(rental_id, data)
 
 
-@router.post("/listings/{listing_id}/sell", response_model=ListingRead)
+@router.post("/listings/{listing_id}/sell")
 def sell_listing(listing_id: int, db: SessionDep, user: CustomerDep):
     service = _service(db)
     listing = service.sell_listing(listing_id, user)
-    game = GameRentalRepository(db).get_game(listing.game_id)
-    return {**listing.model_dump(), "game": game}
+    return {"message": "listing removed from customer"}

@@ -17,6 +17,10 @@ import argparse
 import sys
 from pathlib import Path
 
+from sqlalchemy import select
+
+from app.models.game_rental import Game, Listing
+
 
 def _ensure_models_loaded() -> None:
     import app.models  # noqa: F401
@@ -85,6 +89,37 @@ def cmd_seed(args: argparse.Namespace) -> None:
             )
             print(f"  create {username} ({role})")
             created += 1
+
+    with get_cli_session() as session:
+        game = session.exec(select(Game).where(Game.title == "Test Game")).first()
+        if not game:
+            game = Game(title="Test Game", rating="E", platform="PC", genre="Action")
+            session.add(game)
+            session.commit()
+            session.refresh(game)
+            print("  create Game: Test Game")
+        else:
+            print("  skip  Game: Test Game (already exists)")
+
+        # 2. Create a Listing for Bob if it doesn't exist
+        bob = UserRepository(session).get_by_username("bob")
+        if bob:
+            listing = session.exec(
+                select(Listing).where(Listing.owner_id == bob.id, Listing.game_id == game.id)
+            ).first()
+            if not listing:
+                listing = Listing(
+                    game_id=game.id,
+                    owner_id=bob.id,
+                    condition="Good",
+                    price=10.0
+                )
+                session.add(listing)
+                session.commit()
+                print("  create Listing: Bob owns Test Game")
+            else:
+                print("  skip  Listing: Bob already owns Test Game")
+    # ---------------------------------
 
     print(f"Seed done — created {created}, skipped {skipped}.")
     print("Login with bob/bobpass or admin/adminpass")
